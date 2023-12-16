@@ -27,3 +27,33 @@ migrate_working_dir/
 **/doc/api/
 .dart_tool/
 build/
+
+# Local configuration files
+.idea/
+.vscode/
+*.iml
+
+# Build outputs
+build/
+*.log
+
+# Dependency files
+.dart_tool/
+.packages
+# Uncomment the next line to ignore the pubspec.lock file
+# pubspec.lock
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Flutter specific
+**/GeneratedPluginRegistrant.*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+
+# Add any other files specific to your project that should not be committed
+# secrets.json
