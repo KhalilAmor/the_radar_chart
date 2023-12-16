@@ -1,6 +1,0 @@
-{
-    "yaml.schemas": {
-        "file:///Users/kapsi/.vscode/extensions/atlassian.atlascode-3.0.6/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml",
-        "https://json.schemastore.org/pubspec.json": "file:///Users/kapsi/FlutterPackages/the_radar_chart/pubspec.yaml"
-    }
-}
