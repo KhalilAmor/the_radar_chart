@@ -17,7 +17,8 @@ class RadarChart extends StatefulWidget {
   final Color axisColor;
   final RadarChartShape shape;
   final RadarChartTitle Function(int, double) getTitle;
-
+  final double rotationAngle;
+  final RadarChartController? controller;
   const RadarChart({
     Key? key,
     required this.ticks,
@@ -33,6 +34,8 @@ class RadarChart extends StatefulWidget {
     this.axisColor = Colors.grey,
     required this.getTitle,
     this.shape = RadarChartShape.polygon,
+    this.rotationAngle = 0,
+    this.controller,
   }) : super(key: key);
 
   factory RadarChart.light({
@@ -48,6 +51,7 @@ class RadarChart extends StatefulWidget {
       data: data,
       reverseAxis: false,
       getTitle: getTitle,
+      rotationAngle: 0,
     );
   }
 
@@ -75,15 +79,22 @@ class RadarChart extends StatefulWidget {
   RadarChartState createState() => RadarChartState();
 }
 
-class RadarChartState extends State<RadarChart>
-    with SingleTickerProviderStateMixin {
+class RadarChartState extends State<RadarChart> with TickerProviderStateMixin {
   double fraction = 0;
   late Animation<double> animation;
   late AnimationController animationController;
+  late AnimationController _rotationController;
+  late Animation<double> _rotationAnimation;
+  double _currentRotationStep = 0;
+  int rotationStep = 0; // Add this line to manage rotation
 
   @override
   void initState() {
     super.initState();
+
+    // if (widget.controller != null) {
+    //   widget.controller?.initialize(_rotateToFeature);
+    // }
     animationController = AnimationController(
         duration: const Duration(milliseconds: 400), vsync: this);
 
@@ -98,14 +109,60 @@ class RadarChartState extends State<RadarChart>
       });
 
     animationController.forward();
+
+    _rotationController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    _rotationAnimation = Tween<double>(
+      begin: _currentRotationStep,
+      end: _currentRotationStep,
+    ).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
+    )..addListener(() {
+        setState(() {});
+      });
+
+    if (widget.controller != null) {
+      widget.controller!.initialize(_requestRotateToFeature);
+    }
+  }
+
+  // void _rotateToFeature(int step) {
+  //   setState(() {
+  //     rotationStep = step % widget.features.length;
+  //   });
+  // }
+
+  bool _requestRotateToFeature(int step) {
+    if (_rotationController.isAnimating) return false;
+
+    _rotationAnimation = Tween<double>(
+      begin: _currentRotationStep,
+      end: step.toDouble(),
+    ).animate(
+      CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
+    );
+
+    _rotationController
+      ..reset()
+      ..forward();
+
+    _currentRotationStep = step.toDouble();
+
+    return true;
   }
 
   @override
   void didUpdateWidget(RadarChart oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    animationController.reset();
-    animationController.forward();
+    if (_rotationController.status != AnimationStatus.forward &&
+        _rotationController.status != AnimationStatus.reverse) {
+      animationController.reset();
+      animationController.forward();
+    }
   }
 
   @override
@@ -123,6 +180,9 @@ class RadarChartState extends State<RadarChart>
           widget.axisColor,
           widget.shape == RadarChartShape.polygon ? widget.features.length : 0,
           fraction,
+          _rotationAnimation.value,
+          isRotating: _rotationController.isAnimating,
+          // rotationStep: rotationStep,
           getTitle: widget.getTitle),
     );
   }
@@ -130,6 +190,7 @@ class RadarChartState extends State<RadarChart>
   @override
   void dispose() {
     animationController.dispose();
+    _rotationController.dispose();
     super.dispose();
   }
 }
@@ -147,7 +208,12 @@ class RadarChartPainter extends CustomPainter {
   final double fraction;
   final double titlePadding;
   final EdgeInsets tickPadding;
+  final bool isRotating;
   final RadarChartTitle Function(int, double) getTitle;
+  // final int rotationStep; // Add this line to accept the rotation angle
+  final double
+      rotationValue; // Add this line to accept the animated rotation value
+
   RadarChartPainter(
     this.ticks,
     this.features,
@@ -158,7 +224,10 @@ class RadarChartPainter extends CustomPainter {
     this.outlineColor,
     this.axisColor,
     this.sides,
-    this.fraction, {
+    this.fraction,
+    this.rotationValue, {
+    this.isRotating = false,
+    // this.rotationStep = 0,
     required this.getTitle,
     this.tickPadding = const EdgeInsets.all(4),
     this.titlePadding = 50,
@@ -201,12 +270,20 @@ class RadarChartPainter extends CustomPainter {
     final featureRadius = radius + titlePadding;
 
     final scale = radius / ticks.last.value;
+    // final rotationAngle = (2 * pi) * (rotationStep / features.length);
+    final rotationAngle = (2 * pi) * (rotationValue / features.length);
+
+    ///Rotating canvas
+    canvas.save();
+    canvas.translate(centerX, centerY);
+    canvas.rotate(rotationAngle);
+    canvas.translate(-centerX, -centerY);
 
     // Painting the chart outline
     var outlinePaint = Paint()
       ..color = outlineColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
+      ..strokeWidth = 1.3
       ..isAntiAlias = true;
 
     var ticksPaint = Paint()
@@ -236,41 +313,7 @@ class RadarChartPainter extends CustomPainter {
       if (tick.showLine) {
         canvas.drawPath(variablePath(size, tickRadius, sides), ticksPaint);
       }
-
-      // // Check if the label should be drawn
-      // if (tick.showLabel) {
-      //   TextPainter(
-      //     text: TextSpan(text: tick.value.toString(), style: ticksTextStyle),
-      //     textDirection: TextDirection.ltr,
-      //   )
-      //     ..layout(minWidth: 0, maxWidth: size.width)
-      //     ..paint(
-      //         canvas,
-      //         Offset(
-      //             centerX + tickPadding.left,
-      //             centerY -
-      //                 tickRadius -
-      //                 ticksTextStyle.fontSize! -
-      //                 tickPadding.bottom));
-      // }
     }
-
-    // tickLabels
-    //     .sublist(
-    //         reverseAxis ? 1 : 0, reverseAxis ? ticks.length : ticks.length - 1)
-    //     .asMap()
-    //     .forEach((index, tick) {
-    //   var tickRadius = tickDistance * (index + 1);
-
-    //   canvas.drawPath(variablePath(size, tickRadius, sides), ticksPaint);
-    //   TextPainter(
-    //     text: TextSpan(text: tick.toString(), style: ticksTextStyle),
-    //     textDirection: TextDirection.ltr,
-    //   )
-    //     ..layout(minWidth: 0, maxWidth: size.width)
-    //     ..paint(canvas,
-    //         Offset(centerX, centerY - tickRadius - ticksTextStyle.fontSize!));
-    // });
 
     // Painting the axis for each given feature
     var angle = (2 * pi) / features.length;
@@ -284,26 +327,21 @@ class RadarChartPainter extends CustomPainter {
 
       var textOffset = Offset(
           centerX + featureRadius * xAngle, centerY + featureRadius * yAngle);
-      // var textSize = getTextSize(feature, featuresTextStyle.fontSize!,
-      //     maxWidth: 100, maxLines: 3);
+
       canvas.drawLine(centerOffset, featureOffset, ticksPaint);
-      // var textOffset = offsetOnSameLine(centerOffset, featureOffset, 100);
       var textPainter = TextPainter(
           text: TextSpan(text: feature, style: featuresTextStyle),
           textAlign: TextAlign.center,
           textDirection: TextDirection.ltr,
-          // strutStyle:
-          //     StrutStyle.fromTextStyle(TextStyle(backgroundColor: Colors.red)),
-          // ellipsis: '...',
           maxLines: 3);
       textPainter.layout(
         minWidth: 10,
         maxWidth: size.width * .1,
       );
-      Offset centeredTextOffset = Offset(
-        textOffset.dx - (textPainter.width / 2),
-        textOffset.dy - (textPainter.height / 2),
-      );
+      // Offset centeredTextOffset = Offset(
+      //   textOffset.dx - (textPainter.width / 2),
+      //   textOffset.dy - (textPainter.height / 2),
+      // );
 
       final featureAngle = angle * index;
       var titleData = getTitle(index, featureAngle);
@@ -318,7 +356,7 @@ class RadarChartPainter extends CustomPainter {
       // Translate and rotate the canvas to draw the text
       canvas.save();
       canvas.translate(pivot.dx, pivot.dy);
-      canvas.rotate(titleData.angle);
+      canvas.rotate(-rotationAngle);
 
       // Draw the text such that its center aligns with the pivot point
       textPainter.paint(
@@ -372,16 +410,23 @@ class RadarChartPainter extends CustomPainter {
       canvas.drawPath(path, graphOutlinePaint);
     });
 
+    canvas.restore();
+    var tickPointPainter = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(centerX, centerY), 2, tickPointPainter);
+
     for (var tick in ticks) {
       var tickRadius = tickDistance * ticks.indexOf(tick);
 
-      // // Check if the line should be drawn
-      // if (tick.showLine) {
-      //   canvas.drawPath(variablePath(size, tickRadius, sides), ticksPaint);
-      // }
-
       // Check if the label should be drawn
+
       if (tick.showLabel) {
+        if (!isRotating) {
+          canvas.drawCircle(
+              Offset(centerX, centerY - tickRadius), 2, tickPointPainter);
+        }
+
         TextPainter(
           text: TextSpan(text: tick.value.toString(), style: ticksTextStyle),
           textDirection: TextDirection.ltr,
@@ -401,6 +446,7 @@ class RadarChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(RadarChartPainter oldDelegate) {
-    return oldDelegate.fraction != fraction;
+    return (oldDelegate.fraction != fraction) ||
+        (oldDelegate.isRotating != isRotating);
   }
 }

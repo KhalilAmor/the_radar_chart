@@ -55,3 +55,13 @@ class RadarChartTitle {
   /// [RadarChartData.titlePositionPercentageOffset], even if it is set.
   final double? positionPercentageOffset;
 }
+
+class RadarChartController {
+  late bool Function(int) _rotateToFeature;
+
+  bool Function(int) get rotateToFeature => _rotateToFeature;
+
+  void initialize(bool Function(int) rotateCallback) {
+    _rotateToFeature = rotateCallback;
+  }
+}

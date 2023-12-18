@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:the_radar_chart/the_radar_chart.dart';
 
@@ -29,6 +31,10 @@ class MyHomePageState extends State<MyHomePage> {
   bool darkMode = false;
   bool useSides = false;
   double numberOfFeatures = 4;
+
+  final _controller = RadarChartController();
+
+  int currentStep = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +129,15 @@ class MyHomePageState extends State<MyHomePage> {
                       });
                     },
                   ),
+                  TextButton(
+                      onPressed: () {
+                        setState(() {
+                          var didRotate =
+                              _controller.rotateToFeature(currentStep + 1);
+                          if (didRotate) currentStep++;
+                        });
+                      },
+                      child: const Text('Rotate'))
                 ],
               ),
             ),
@@ -152,6 +167,7 @@ class MyHomePageState extends State<MyHomePage> {
                       });
                     },
                   ),
+                  // TextButton(onPressed: onPressed, child: child)
                 ],
               ),
             ),
@@ -194,10 +210,13 @@ class MyHomePageState extends State<MyHomePage> {
                       },
                     )
                   : RadarChart(
+                      controller: _controller,
                       ticks: ticks,
                       features: features,
                       data: data,
                       reverseAxis: false,
+                      rotationAngle: 0,
+                      outlineColor: Colors.grey,
                       // sides: 10,
                       shape: RadarChartShape.polygon,
                       ticksTextStyle:
