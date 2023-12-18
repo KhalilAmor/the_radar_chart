@@ -328,12 +328,14 @@ class RadarChartPainter extends CustomPainter {
       var textOffset = Offset(
           centerX + featureRadius * xAngle, centerY + featureRadius * yAngle);
 
+      final featureAngle = angle * index;
+      var titleData = getTitle(index, featureAngle);
       canvas.drawLine(centerOffset, featureOffset, ticksPaint);
       var textPainter = TextPainter(
-          text: TextSpan(text: feature, style: featuresTextStyle),
+          text: TextSpan(text: titleData.text, style: featuresTextStyle),
           textAlign: TextAlign.center,
-          textDirection: TextDirection.ltr,
-          maxLines: 3);
+          // textDirection: TextDirection.ltr,
+          maxLines: 5);
       textPainter.layout(
         minWidth: 10,
         maxWidth: size.width * .1,
@@ -342,9 +344,6 @@ class RadarChartPainter extends CustomPainter {
       //   textOffset.dx - (textPainter.width / 2),
       //   textOffset.dy - (textPainter.height / 2),
       // );
-
-      final featureAngle = angle * index;
-      var titleData = getTitle(index, featureAngle);
 
       // Adjust the rotation angle based on the feature's position around the circle
       // The label should be rotated in the opposite direction of the featureAngle
