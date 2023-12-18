@@ -41,7 +41,7 @@ class MyHomePageState extends State<MyHomePage> {
     ];
     var features = [
       "AAAA AAAAAAAA AAAAAAA",
-      "BBBBBB BBBBBBBBBBBB BBBBBB",
+      "BBBBBB BBBBBB BBBBBB",
       "CCCCCC CCCCCCCCCCCCCCCCCC CCCCCC",
       "DDDDDD DDDDDD DDDDDD ",
       "EEEEE EEEEE EEEEEEE",
@@ -65,65 +65,32 @@ class MyHomePageState extends State<MyHomePage> {
       "KKKKKKKK KKKKKKKK KKKKKKKK ",
       "LLLLLLL LLLLLLL LLLLLLL ",
     ];
-    var data = [
-      [
-        1000,
-        1000,
-        0,
-        400,
-        200,
-        500,
-        200,
-        300,
-        400,
-        200,
-        200,
-        500,
-        100,
-        200,
-        300,
-        400,
-        200,
-        500,
-        200,
-        300,
-        400,
-        200,
-        200,
-        500,
-      ],
-      [
-        750,
-        750,
-        0,
-        500,
-        100,
-        200,
-        300,
-        400,
-        200,
-        200,
-        300,
-        400,
-        200,
-        500,
-        200,
-        500,
-        100,
-        200,
-        300,
-        400,
-        200,
-        200,
-        300,
-        400,
-      ],
-    ];
 
+    var data = [
+      RadarDataSet(
+        borderColor: Colors.orange,
+        fillColor: Colors.orange.withOpacity(0.3),
+        borderWidth: 3,
+        dataEntries: [
+          1000,
+          1000,
+          0,
+          0,
+        ],
+      ),
+      RadarDataSet(
+        borderColor: Colors.red,
+        fillColor: Colors.red.withOpacity(0.3),
+        borderWidth: 1,
+        dataEntries: [
+          750,
+          750,
+          0,
+          0,
+        ],
+      ),
+    ];
     features = features.sublist(0, numberOfFeatures.floor());
-    data = data
-        .map((graph) => graph.sublist(0, numberOfFeatures.floor()))
-        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -220,16 +187,25 @@ class MyHomePageState extends State<MyHomePage> {
                       ticks: ticks,
                       features: features,
                       data: data,
-                      reverseAxis: true,
-                      useSides: useSides,
+                      shape: RadarChartShape.circular,
+                      getTitle: (index, angle) {
+                        return RadarChartTitle(
+                            text: features[index], angle: angle);
+                      },
                     )
-                  : RadarChart.light(
+                  : RadarChart(
                       ticks: ticks,
                       features: features,
                       data: data,
                       reverseAxis: false,
-                      useSides: useSides,
-                    ),
+                      // sides: 10,
+                      shape: RadarChartShape.polygon,
+                      ticksTextStyle:
+                          const TextStyle(color: Colors.black, fontSize: 14),
+                      getTitle: (index, angle) {
+                        return RadarChartTitle(
+                            text: features[index], angle: angle);
+                      }),
             ),
           ],
         ),

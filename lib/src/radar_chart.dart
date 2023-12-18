@@ -4,26 +4,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'dart:math' show pi, cos, sin;
 
-import 'package:the_radar_chart/src/tick_data.dart';
-
-const defaultGraphColors = [
-  Colors.green,
-  Colors.blue,
-  Colors.red,
-  Colors.orange,
-];
+import 'package:the_radar_chart/src/models.dart';
 
 class RadarChart extends StatefulWidget {
   final List<TickData> ticks;
   final List<String> features;
-  final List<List<num>> data;
+  final List<RadarDataSet> data;
   final bool reverseAxis;
   final TextStyle ticksTextStyle;
   final TextStyle featuresTextStyle;
   final Color outlineColor;
   final Color axisColor;
-  final List<Color> graphColors;
-  final int sides;
+  final RadarChartShape shape;
+  final RadarChartTitle Function(int, double) getTitle;
 
   const RadarChart({
     Key? key,
@@ -38,41 +31,44 @@ class RadarChart extends StatefulWidget {
     ),
     this.outlineColor = Colors.black,
     this.axisColor = Colors.grey,
-    this.graphColors = defaultGraphColors,
-    this.sides = 0,
+    required this.getTitle,
+    this.shape = RadarChartShape.polygon,
   }) : super(key: key);
 
   factory RadarChart.light({
     required List<TickData> ticks,
     required List<String> features,
-    required List<List<num>> data,
-    bool reverseAxis = false,
-    bool useSides = false,
+    required List<RadarDataSet> data,
+    required RadarChartTitle Function(int, double) getTitle,
+    required RadarChartShape shape,
   }) {
     return RadarChart(
-        ticks: ticks,
-        features: features,
-        data: data,
-        reverseAxis: reverseAxis,
-        sides: useSides ? features.length : 0);
+      ticks: ticks,
+      features: features,
+      data: data,
+      reverseAxis: false,
+      getTitle: getTitle,
+    );
   }
 
   factory RadarChart.dark({
     required List<TickData> ticks,
     required List<String> features,
-    required List<List<num>> data,
-    bool reverseAxis = false,
-    bool useSides = false,
+    required List<RadarDataSet> data,
+    required RadarChartTitle Function(int, double) getTitle,
+    required RadarChartShape shape,
   }) {
     return RadarChart(
-        ticks: ticks,
-        features: features,
-        data: data,
-        featuresTextStyle: const TextStyle(color: Colors.white, fontSize: 16),
-        outlineColor: Colors.white,
-        axisColor: Colors.grey,
-        reverseAxis: reverseAxis,
-        sides: useSides ? features.length : 0);
+      ticks: ticks,
+      features: features,
+      data: data,
+      featuresTextStyle: const TextStyle(color: Colors.white, fontSize: 16),
+      outlineColor: Colors.white,
+      axisColor: Colors.grey,
+      reverseAxis: false,
+      getTitle: getTitle,
+      shape: shape,
+    );
   }
 
   @override
@@ -125,9 +121,9 @@ class RadarChartState extends State<RadarChart>
           widget.featuresTextStyle,
           widget.outlineColor,
           widget.axisColor,
-          widget.graphColors,
-          widget.sides,
-          fraction),
+          widget.shape == RadarChartShape.polygon ? widget.features.length : 0,
+          fraction,
+          getTitle: widget.getTitle),
     );
   }
 
@@ -141,17 +137,17 @@ class RadarChartState extends State<RadarChart>
 class RadarChartPainter extends CustomPainter {
   final List<TickData> ticks;
   final List<String> features;
-  final List<List<num>> data;
+  final List<RadarDataSet> data;
   final bool reverseAxis;
   final TextStyle ticksTextStyle;
   final TextStyle featuresTextStyle;
   final Color outlineColor;
   final Color axisColor;
-  final List<Color> graphColors;
   final int sides;
   final double fraction;
   final double titlePadding;
   final EdgeInsets tickPadding;
+  final RadarChartTitle Function(int, double) getTitle;
   RadarChartPainter(
     this.ticks,
     this.features,
@@ -161,9 +157,9 @@ class RadarChartPainter extends CustomPainter {
     this.featuresTextStyle,
     this.outlineColor,
     this.axisColor,
-    this.graphColors,
     this.sides,
     this.fraction, {
+    required this.getTitle,
     this.tickPadding = const EdgeInsets.all(4),
     this.titlePadding = 50,
   });
@@ -201,7 +197,7 @@ class RadarChartPainter extends CustomPainter {
     final centerX = size.width / 2.0;
     final centerY = size.height / 2.0;
     final centerOffset = Offset(centerX, centerY);
-    final radius = math.min(centerX, centerY) * 0.5;
+    final radius = math.min(centerX, centerY) * 0.65;
     final featureRadius = radius + titlePadding;
 
     final scale = radius / ticks.last.value;
@@ -241,22 +237,22 @@ class RadarChartPainter extends CustomPainter {
         canvas.drawPath(variablePath(size, tickRadius, sides), ticksPaint);
       }
 
-      // Check if the label should be drawn
-      if (tick.showLabel) {
-        TextPainter(
-          text: TextSpan(text: tick.value.toString(), style: ticksTextStyle),
-          textDirection: TextDirection.ltr,
-        )
-          ..layout(minWidth: 0, maxWidth: size.width)
-          ..paint(
-              canvas,
-              Offset(
-                  centerX + tickPadding.left,
-                  centerY -
-                      tickRadius -
-                      ticksTextStyle.fontSize! -
-                      tickPadding.bottom));
-      }
+      // // Check if the label should be drawn
+      // if (tick.showLabel) {
+      //   TextPainter(
+      //     text: TextSpan(text: tick.value.toString(), style: ticksTextStyle),
+      //     textDirection: TextDirection.ltr,
+      //   )
+      //     ..layout(minWidth: 0, maxWidth: size.width)
+      //     ..paint(
+      //         canvas,
+      //         Offset(
+      //             centerX + tickPadding.left,
+      //             centerY -
+      //                 tickRadius -
+      //                 ticksTextStyle.fontSize! -
+      //                 tickPadding.bottom));
+      // }
     }
 
     // tickLabels
@@ -282,7 +278,7 @@ class RadarChartPainter extends CustomPainter {
     features.asMap().forEach((index, feature) {
       var xAngle = cos(angle * index - pi / 2);
       var yAngle = sin(angle * index - pi / 2);
-      var featurePadding = 20.0;
+      // var featurePadding = 20.0;
       var featureOffset =
           Offset(centerX + radius * xAngle, centerY + radius * yAngle);
 
@@ -291,7 +287,6 @@ class RadarChartPainter extends CustomPainter {
       // var textSize = getTextSize(feature, featuresTextStyle.fontSize!,
       //     maxWidth: 100, maxLines: 3);
       canvas.drawLine(centerOffset, featureOffset, ticksPaint);
-
       // var textOffset = offsetOnSameLine(centerOffset, featureOffset, 100);
       var textPainter = TextPainter(
           text: TextSpan(text: feature, style: featuresTextStyle),
@@ -299,7 +294,7 @@ class RadarChartPainter extends CustomPainter {
           textDirection: TextDirection.ltr,
           // strutStyle:
           //     StrutStyle.fromTextStyle(TextStyle(backgroundColor: Colors.red)),
-          ellipsis: '...',
+          // ellipsis: '...',
           maxLines: 3);
       textPainter.layout(
         minWidth: 10,
@@ -309,24 +304,45 @@ class RadarChartPainter extends CustomPainter {
         textOffset.dx - (textPainter.width / 2),
         textOffset.dy - (textPainter.height / 2),
       );
-      textPainter.paint(canvas, centeredTextOffset);
-      // ..paint(canvas, textOffset);
+
+      final featureAngle = angle * index;
+      var titleData = getTitle(index, featureAngle);
+
+      // Adjust the rotation angle based on the feature's position around the circle
+      // The label should be rotated in the opposite direction of the featureAngle
+      // final featureRotationAngle = -featureAngle;
+
+      // Calculate the pivot point for the rotation
+      final pivot = Offset(textOffset.dx, textOffset.dy);
+
+      // Translate and rotate the canvas to draw the text
+      canvas.save();
+      canvas.translate(pivot.dx, pivot.dy);
+      canvas.rotate(titleData.angle);
+
+      // Draw the text such that its center aligns with the pivot point
+      textPainter.paint(
+          canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
+
+      canvas.restore(); // Always restore the canvas after modification
+
+      // textPainter.paint(canvas, centeredTextOffset);
     });
 
     // Painting each graph
     data.asMap().forEach((index, graph) {
       var graphPaint = Paint()
-        ..color = graphColors[index % graphColors.length].withOpacity(0.3)
+        ..color = graph.fillColor
         ..style = PaintingStyle.fill;
 
       var graphOutlinePaint = Paint()
-        ..color = graphColors[index % graphColors.length]
+        ..color = graph.borderColor
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0
+        ..strokeWidth = graph.borderWidth
         ..isAntiAlias = true;
 
       // Start the graph on the initial point
-      var scaledPoint = scale * graph[0] * fraction;
+      var scaledPoint = scale * graph.dataEntries[0] * fraction;
       var path = Path();
 
       if (reverseAxis) {
@@ -335,7 +351,7 @@ class RadarChartPainter extends CustomPainter {
         path.moveTo(centerX, centerY - scaledPoint);
       }
 
-      graph.asMap().forEach((index, point) {
+      graph.dataEntries.asMap().forEach((index, point) {
         if (index == 0) return;
 
         var xAngle = cos(angle * index - pi / 2);
@@ -355,6 +371,32 @@ class RadarChartPainter extends CustomPainter {
       canvas.drawPath(path, graphPaint);
       canvas.drawPath(path, graphOutlinePaint);
     });
+
+    for (var tick in ticks) {
+      var tickRadius = tickDistance * ticks.indexOf(tick);
+
+      // // Check if the line should be drawn
+      // if (tick.showLine) {
+      //   canvas.drawPath(variablePath(size, tickRadius, sides), ticksPaint);
+      // }
+
+      // Check if the label should be drawn
+      if (tick.showLabel) {
+        TextPainter(
+          text: TextSpan(text: tick.value.toString(), style: ticksTextStyle),
+          textDirection: TextDirection.ltr,
+        )
+          ..layout(minWidth: 0, maxWidth: size.width)
+          ..paint(
+              canvas,
+              Offset(
+                  centerX + tickPadding.left,
+                  centerY -
+                      tickRadius -
+                      ticksTextStyle.fontSize! -
+                      tickPadding.bottom));
+      }
+    }
   }
 
   @override
