@@ -334,7 +334,7 @@ class RadarChartPainter extends CustomPainter {
       var textPainter = TextPainter(
           text: TextSpan(text: titleData.text, style: featuresTextStyle),
           textAlign: TextAlign.center,
-          // textDirection: TextDirection.ltr,
+          textDirection: TextDirection.ltr,
           maxLines: 5);
       textPainter.layout(
         minWidth: 10,
