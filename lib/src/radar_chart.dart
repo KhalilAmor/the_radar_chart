@@ -338,7 +338,7 @@ class RadarChartPainter extends CustomPainter {
           maxLines: 5);
       textPainter.layout(
         minWidth: 10,
-        maxWidth: size.width * .1,
+        maxWidth: size.width * .3,
       );
       // Offset centeredTextOffset = Offset(
       //   textOffset.dx - (textPainter.width / 2),
