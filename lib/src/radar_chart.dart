@@ -19,6 +19,7 @@ class RadarChart extends StatefulWidget {
   final RadarChartTitle Function(int, double) getTitle;
   final double rotationAngle;
   final RadarChartController? controller;
+
   const RadarChart({
     Key? key,
     required this.ticks,
@@ -86,7 +87,6 @@ class RadarChartState extends State<RadarChart> with TickerProviderStateMixin {
   late AnimationController _rotationController;
   late Animation<double> _rotationAnimation;
   double _currentRotationStep = 0;
-  int rotationStep = 0; // Add this line to manage rotation
 
   @override
   void initState() {
@@ -125,22 +125,27 @@ class RadarChartState extends State<RadarChart> with TickerProviderStateMixin {
       });
 
     if (widget.controller != null) {
-      widget.controller!.initialize(_requestRotateToFeature);
+      widget.controller!.initialize(_rotateFeature);
     }
   }
 
-  // void _rotateToFeature(int step) {
-  //   setState(() {
-  //     rotationStep = step % widget.features.length;
-  //   });
-  // }
-
-  bool _requestRotateToFeature(int step) {
+  /// True will rotate Clockwise, False counterClockwise
+  bool _rotateFeature(bool rotateClockwise) {
     if (_rotationController.isAnimating) return false;
 
+    // Adjust the step based on the direction
+    if (rotateClockwise) {
+      _currentRotationStep += 1;
+    } else {
+      _currentRotationStep -= 1;
+    }
+
+    // Normalize the step to keep it within the range of features
+    // _currentRotationStep %= widget.features.length;
+
     _rotationAnimation = Tween<double>(
-      begin: _currentRotationStep,
-      end: step.toDouble(),
+      begin: _rotationAnimation.value, // Start from the current animation value
+      end: _currentRotationStep.toDouble(),
     ).animate(
       CurvedAnimation(parent: _rotationController, curve: Curves.easeInOut),
     );
@@ -148,8 +153,6 @@ class RadarChartState extends State<RadarChart> with TickerProviderStateMixin {
     _rotationController
       ..reset()
       ..forward();
-
-    _currentRotationStep = step.toDouble();
 
     return true;
   }
@@ -210,9 +213,8 @@ class RadarChartPainter extends CustomPainter {
   final EdgeInsets tickPadding;
   final bool isRotating;
   final RadarChartTitle Function(int, double) getTitle;
-  // final int rotationStep; // Add this line to accept the rotation angle
-  final double
-      rotationValue; // Add this line to accept the animated rotation value
+  final double rotationValue;
+  final double outlineBorderWidth;
 
   RadarChartPainter(
     this.ticks,
@@ -226,6 +228,7 @@ class RadarChartPainter extends CustomPainter {
     this.sides,
     this.fraction,
     this.rotationValue, {
+    this.outlineBorderWidth = 1,
     this.isRotating = false,
     // this.rotationStep = 0,
     required this.getTitle,
@@ -266,7 +269,7 @@ class RadarChartPainter extends CustomPainter {
     final centerX = size.width / 2.0;
     final centerY = size.height / 2.0;
     final centerOffset = Offset(centerX, centerY);
-    final radius = math.min(centerX, centerY) * 0.65;
+    final radius = math.min(centerX, centerY) * 0.85;
     final featureRadius = radius + titlePadding;
 
     final scale = radius / ticks.last.value;

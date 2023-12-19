@@ -57,11 +57,11 @@ class RadarChartTitle {
 }
 
 class RadarChartController {
-  late bool Function(int) _rotateToFeature;
+  late bool Function(bool) _rotateToFeature;
 
-  bool Function(int) get rotateToFeature => _rotateToFeature;
+  bool Function(bool) get rotateToFeature => _rotateToFeature;
 
-  void initialize(bool Function(int) rotateCallback) {
+  void initialize(bool Function(bool) rotateCallback) {
     _rotateToFeature = rotateCallback;
   }
 }

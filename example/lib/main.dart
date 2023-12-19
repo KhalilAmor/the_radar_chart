@@ -132,12 +132,19 @@ class MyHomePageState extends State<MyHomePage> {
                   TextButton(
                       onPressed: () {
                         setState(() {
-                          var didRotate =
-                              _controller.rotateToFeature(currentStep + 1);
+                          var didRotate = _controller.rotateToFeature(true);
                           if (didRotate) currentStep++;
                         });
                       },
-                      child: const Text('Rotate'))
+                      child: const Text('Rotate right')),
+                  TextButton(
+                      onPressed: () {
+                        setState(() {
+                          var didRotate = _controller.rotateToFeature(false);
+                          if (didRotate) currentStep--;
+                        });
+                      },
+                      child: const Text('Rotate left'))
                 ],
               ),
             ),
