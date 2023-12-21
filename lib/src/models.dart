@@ -60,8 +60,13 @@ class RadarChartController {
   late bool Function(bool) _rotateToFeature;
 
   bool Function(bool) get rotateToFeature => _rotateToFeature;
-
+  int _currentStep = 0;
+  int get currentStep => _currentStep;
   void initialize(bool Function(bool) rotateCallback) {
     _rotateToFeature = rotateCallback;
+  }
+
+  void updateCurrentStep(int step) {
+    _currentStep = step;
   }
 }

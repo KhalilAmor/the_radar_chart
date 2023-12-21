@@ -231,7 +231,9 @@ class MyHomePageState extends State<MyHomePage> {
                       getTitle: (index, angle) {
                         return RadarChartTitle(
                             text: features[index], angle: angle);
-                      }),
+                      },
+                      titlePadding: 20,
+                    ),
             ),
           ],
         ),

@@ -19,8 +19,10 @@ class RadarChart extends StatefulWidget {
   final RadarChartTitle Function(int, double) getTitle;
   final double rotationAngle;
   final RadarChartController? controller;
+  final Color backgroundColor;
+  final double titlePadding;
 
-  const RadarChart({
+  RadarChart({
     Key? key,
     required this.ticks,
     required this.features,
@@ -37,6 +39,8 @@ class RadarChart extends StatefulWidget {
     this.shape = RadarChartShape.polygon,
     this.rotationAngle = 0,
     this.controller,
+    this.backgroundColor = const Color(0xff004b25),
+    this.titlePadding = 50,
   }) : super(key: key);
 
   factory RadarChart.light({
@@ -45,6 +49,7 @@ class RadarChart extends StatefulWidget {
     required List<RadarDataSet> data,
     required RadarChartTitle Function(int, double) getTitle,
     required RadarChartShape shape,
+    double titlePadding = 50,
   }) {
     return RadarChart(
       ticks: ticks,
@@ -53,6 +58,7 @@ class RadarChart extends StatefulWidget {
       reverseAxis: false,
       getTitle: getTitle,
       rotationAngle: 0,
+      titlePadding: titlePadding,
     );
   }
 
@@ -62,6 +68,7 @@ class RadarChart extends StatefulWidget {
     required List<RadarDataSet> data,
     required RadarChartTitle Function(int, double) getTitle,
     required RadarChartShape shape,
+    double titlePadding = 50,
   }) {
     return RadarChart(
       ticks: ticks,
@@ -73,6 +80,7 @@ class RadarChart extends StatefulWidget {
       reverseAxis: false,
       getTitle: getTitle,
       shape: shape,
+      titlePadding: titlePadding,
     );
   }
 
@@ -92,9 +100,6 @@ class RadarChartState extends State<RadarChart> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // if (widget.controller != null) {
-    //   widget.controller?.initialize(_rotateToFeature);
-    // }
     animationController = AnimationController(
         duration: const Duration(milliseconds: 400), vsync: this);
 
@@ -184,8 +189,9 @@ class RadarChartState extends State<RadarChart> with TickerProviderStateMixin {
           widget.shape == RadarChartShape.polygon ? widget.features.length : 0,
           fraction,
           _rotationAnimation.value,
+          widget.backgroundColor,
           isRotating: _rotationController.isAnimating,
-          // rotationStep: rotationStep,
+          titlePadding: widget.titlePadding,
           getTitle: widget.getTitle),
     );
   }
@@ -215,7 +221,7 @@ class RadarChartPainter extends CustomPainter {
   final RadarChartTitle Function(int, double) getTitle;
   final double rotationValue;
   final double outlineBorderWidth;
-
+  final Color backgroundColor;
   RadarChartPainter(
     this.ticks,
     this.features,
@@ -227,10 +233,10 @@ class RadarChartPainter extends CustomPainter {
     this.axisColor,
     this.sides,
     this.fraction,
-    this.rotationValue, {
+    this.rotationValue,
+    this.backgroundColor, {
     this.outlineBorderWidth = 1,
     this.isRotating = false,
-    // this.rotationStep = 0,
     required this.getTitle,
     this.tickPadding = const EdgeInsets.all(4),
     this.titlePadding = 50,
@@ -269,7 +275,7 @@ class RadarChartPainter extends CustomPainter {
     final centerX = size.width / 2.0;
     final centerY = size.height / 2.0;
     final centerOffset = Offset(centerX, centerY);
-    final radius = math.min(centerX, centerY) * 0.85;
+    final radius = math.min(centerX, centerY) * 0.70;
     final featureRadius = radius + titlePadding;
 
     final scale = radius / ticks.last.value;
@@ -296,6 +302,15 @@ class RadarChartPainter extends CustomPainter {
       ..isAntiAlias = true;
 
     canvas.drawPath(variablePath(size, radius, sides), outlinePaint);
+
+    // Create a path for the outline of the radar chart
+    Path outlinePath = variablePath(size, radius, sides);
+
+    // Paint the background
+    var backgroundPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(outlinePath, backgroundPaint);
     // Painting the circles and labels for the given ticks (could be auto-generated)
     // The last tick is ignored, since it overlaps with the feature label
     var tickDistance = radius / (ticks.length - 1);
@@ -341,7 +356,7 @@ class RadarChartPainter extends CustomPainter {
           maxLines: 5);
       textPainter.layout(
         minWidth: 10,
-        maxWidth: size.width * .3,
+        maxWidth: size.width * .43,
       );
       // Offset centeredTextOffset = Offset(
       //   textOffset.dx - (textPainter.width / 2),
